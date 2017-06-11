@@ -14,24 +14,6 @@ using UnityEditor;
 
 namespace DTTimeScaleScrubber {
 	public class TimeScaleScrubber : MonoBehaviour {
-		// PRAGMA MARK - Static
-		// if using TimeScaleScrubber to scrub through time - you can use this variable to keep track of
-		// how much time has changed from "real" time. Useful when doing real-time mobile-esque cooldowns.
-		private static float? timeOffset_;
-		public static float TimeOffset {
-			get {
-				if (timeOffset_ == null) {
-					timeOffset_ = PlayerPrefs.GetFloat("TimeScaleScrubber::TimeOffset", defaultValue: 0.0f);
-				}
-				return timeOffset_.Value;
-			}
-			set {
-				timeOffset_ = value;
-				PlayerPrefs.SetFloat("TimeScaleScrubber::TimeOffset", timeOffset_.Value);
-			}
-		}
-
-
 		// PRAGMA MARK - Public Interface
 		public bool IsScrubbing {
 			get; private set;
@@ -98,6 +80,7 @@ namespace DTTimeScaleScrubber {
 		}
 
 		private IEnumerator UpdateTimeScaleScrubbing() {
+			bool shouldResetTimeScale = false;
 			int previousNumberOfTouches = 0;
 			Vector2 scrubTouchStartingCenter = Vector2.zero;
 
@@ -138,18 +121,18 @@ namespace DTTimeScaleScrubber {
 				}
 
 
-				float timeScale = 1.0f;
-				if (timeScaleScrub > 0) {
-					timeScale = Mathf.Lerp(1.0f, timeScaleMax_, timeScaleScrub);
-				} else if (timeScaleScrub < 0) {
-					timeScale = Mathf.Lerp(1.0f, timeScaleMin_, -timeScaleScrub);
+				if (timeScaleScrub != 0.0f) {
+					shouldResetTimeScale = true;
+
+					if (timeScaleScrub > 0) {
+						Time.timeScale = Mathf.Lerp(1.0f, timeScaleMax_, timeScaleScrub);
+					} else if (timeScaleScrub < 0) {
+						Time.timeScale = Mathf.Lerp(1.0f, timeScaleMin_, -timeScaleScrub);
+					}
+				} else if (shouldResetTimeScale) {
+					shouldResetTimeScale = false;
+					Time.timeScale = 1.0f;
 				}
-
-				Time.timeScale = timeScale;
-
-				float timeScaleDifference = timeScale - 1.0f;
-				TimeOffset += Time.unscaledDeltaTime * timeScaleDifference;
-
 
 				IsScrubbing = timeScaleScrub != 0.0f;
 				previousNumberOfTouches = numberOfTouches;
